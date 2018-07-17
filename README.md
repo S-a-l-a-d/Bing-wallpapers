@@ -4,6 +4,8 @@ This Windows PowerShell script automatically fetches the Bing image of
 the day.
 Using this script you can set the Bing image of the day as your
 wallpaper.
+This fork includes a function to set newest image as wallpaper
+after being downloaded.
 
 The script uses the XML page of [Microsoft Bing](https://www.bing.com/)
 to download the images.
