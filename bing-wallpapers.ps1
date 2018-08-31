@@ -14,20 +14,20 @@ Param(
     'he-IL', 'hr-HR', 'hu-HU', 'it-IT', 'ja-JP', 'ko-KR', 'lt-LT',
     'lv-LV', 'nb-NO', 'nl-BE', 'nl-NL', 'pl-PL', 'pt-BR', 'pt-PT',
     'ro-RO', 'ru-RU', 'sk-SK', 'sl-SL', 'sv-SE', 'th-TH', 'tr-TR',
-    'uk-UA', 'zh-CN', 'zh-HK', 'zh-TW')][string]$locale = 'auto',
+    'vi-VN', 'uk-UA', 'zh-CN', 'zh-HK', 'zh-TW')][string]$locale = 'auto',
 
-    # Download the latest $files wallpapers
-    [int]$files = 3,
+  # Download the latest $files wallpapers
+  [int]$files = 3,
 
     # Resolution of the image to download
     [ValidateSet('auto', '1024x768', '1280x720', '1366x768',
     '1920x1080', '1920x1200')][string]$resolution = 'auto',
 
-    # Destination folder to download the wallpapers to
-    [string]$downloadFolder = "$([Environment]::GetFolderPath("MyPictures"))\Wallpapers"
+  # Destination folder to download the wallpapers to
+  [string]$downloadFolder = "$([Environment]::GetFolderPath("MyPictures"))\Wallpapers"
 )
 # Max item count: the number of images we'll query for
-[int]$maxItemCount = [System.Math]::max(1, [System.Math]::max($files, 8))
+[int]$maxItemCount = [System.Math]::max(1,[System.Math]::max($files,8))
 # URI to fetch the image locations from
 if ($locale -eq 'auto') {
     $market = ""
@@ -39,24 +39,24 @@ if ($locale -eq 'auto') {
 
 # Get the appropiate screen resolution
 if ($resolution -eq 'auto') {
-    Add-Type -AssemblyName System.Windows.Forms
-    $primaryScreen = [System.Windows.Forms.Screen]::AllScreens | Where-Object {$_.Primary -eq 'True'}
-    if ($primaryScreen.Bounds.Width -le 1024) {
-        $resolution = '1024x768'
-    } elseif ($primaryScreen.Bounds.Width -le 1280) {
-        $resolution = '1280x720'
-    } elseif ($primaryScreen.Bounds.Width -le 1366) {
-        $resolution = '1366x768'
-    } elseif ($primaryScreen.Bounds.Height -le 1080) {
-        $resolution = '1920x1080'
-    } else {
-        $resolution = '1920x1200'
-    }
+  Add-Type -AssemblyName System.Windows.Forms
+  $primaryScreen = [System.Windows.Forms.Screen]::AllScreens | Where-Object { $_.Primary -eq 'True' }
+  if ($primaryScreen.Bounds.Width -le 1024) {
+    $resolution = '1024x768'
+  } elseif ($primaryScreen.Bounds.Width -le 1280) {
+    $resolution = '1280x720'
+  } elseif ($primaryScreen.Bounds.Width -le 1366) {
+    $resolution = '1366x768'
+  } elseif ($primaryScreen.Bounds.Height -le 1080) {
+    $resolution = '1920x1080'
+  } else {
+    $resolution = '1920x1200'
+  }
 }
 
 # Check if download folder exists and otherwise create it
 if (!(Test-Path $downloadFolder)) {
-    New-Item -ItemType Directory $downloadFolder
+  New-Item -ItemType Directory $downloadFolder
 }
 
 $request = Invoke-WebRequest -Uri $uri
@@ -64,51 +64,75 @@ $request = Invoke-WebRequest -Uri $uri
 
 $items = New-Object System.Collections.ArrayList
 foreach ($xmlImage in $content.images.image) {
-    [datetime]$imageDate = [datetime]::ParseExact($xmlImage.startdate, 'yyyyMMdd', $null)
-    [string]$imageUrl = "$hostname$($xmlImage.urlBase)_$resolution.jpg"
+  [datetime]$imageDate = [datetime]::ParseExact($xmlImage.startdate,'yyyyMMdd',$null)
+  [string]$imageUrl = "$hostname$($xmlImage.urlBase)_$resolution.jpg"
 
-    # Add item to our array list
-    $item = New-Object System.Object
-    $item | Add-Member -Type NoteProperty -Name date -Value $imageDate
-    $item | Add-Member -Type NoteProperty -Name url -Value $imageUrl
-    $null = $items.Add($item)
+  # Add item to our array list
+  $item = New-Object System.Object
+  $item | Add-Member -Type NoteProperty -Name date -Value $imageDate
+  $item | Add-Member -Type NoteProperty -Name url -Value $imageUrl
+  $null = $items.Add($item)
 }
 
 # Keep only the most recent $files items to download
 if (!($files -eq 0) -and ($items.Count -gt $files)) {
-    # We have too many matches, keep only the most recent
-    $items = $items|Sort date
-    while ($items.Count -gt $files) {
-        # Pop the oldest item of the array
-        $null, $items = $items
-    }
+  # We have too many matches, keep only the most recent
+  $items = $items | Sort date
+  while ($items.Count -gt $files) {
+    # Pop the oldest item of the array
+    $null,$items = $items
+  }
 }
 
 Write-Host "Downloading images..."
 $client = New-Object System.Net.WebClient
 foreach ($item in $items) {
-    $baseName = $item.date.ToString("yyyy-MM-dd")
-    $destination = "$downloadFolder\$baseName.jpg"
-    $url = $item.url
+  $baseName = $item.date.ToString("yyyy-MM-dd")
+  $destination = "$downloadFolder\$baseName.jpg"
+  $url = $item.url
 
-    # Download the enclosure if we haven't done so already
-    if (!(Test-Path $destination)) {
-        Write-Debug "Downloading image to $destination"
-        $client.DownloadFile($url, "$destination")
-    }
+  # Download the enclosure if we haven't done so already
+  if (!(Test-Path $destination)) {
+    Write-Debug "Downloading image to $destination"
+    $client.DownloadFile($url,"$destination")
+  }
 }
 
 if ($files -gt 0) {
-    # We do not want to keep every file; remove the old ones
-    Write-Host "Cleaning the directory..."
-    $i = 1
-    Get-ChildItem -Filter "????-??-??.jpg" $downloadFolder | Sort -Descending FullName | ForEach-Object {
-        if ($i -gt $files) {
-            # We have more files than we want, delete the extra files
-            $fileName = $_.FullName
-            Write-Debug "Removing file $fileName"
-            Remove-Item "$fileName"
-        }
-        $i++
+  # We do not want to keep every file; remove the old ones
+  Write-Host "Cleaning the directory..."
+  $i = 1
+  Get-ChildItem -Filter "????-??-??.jpg" $downloadFolder | Sort -Descending FullName | ForEach-Object {
+    if ($i -gt $files) {
+      # We have more files than we want, delete the extra files
+      $fileName = $_.FullName
+      Write-Debug "Removing file $fileName"
+      Remove-Item "$fileName"
     }
+    $i++
+  }
 }
+
+# Set wallpaper
+$setwallpapersrc = @"
+using System.Runtime.InteropServices;
+
+public class wallpaper
+{
+  public const int SetDesktopWallpaper = 20;
+  public const int UpdateIniFile = 0x01;
+  public const int SendWinIniChange = 0x02;
+
+  [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
+
+  private static extern int SystemParametersInfo(int uAction, int uParam, string lpvParam, int fuWinIni);
+
+  public static void SetWallpaper(string path)
+  {
+    SystemParametersInfo(SetDesktopWallpaper, 0, path, UpdateIniFile | SendWinIniChange);
+  }
+}
+"@
+
+Add-Type -TypeDefinition $setwallpapersrc
+[wallpaper]::SetWallpaper("$downloadFolder\$($items[$items.Count - 1].date.ToString("yyyy-MM-dd")).jpg")
